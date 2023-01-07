@@ -5,7 +5,7 @@ TEST_BUILD_DIR := test/build
 
 test: $(TEST_BUILD_DIR)
 # unit tests
-	set -x && cd $(TEST_BUILD_DIR) && cmake .. && make && ./testCommunication && ./testGame && ./testUtils
+	set -x && cd $(TEST_BUILD_DIR) && cmake ../ && make && ./testCommunication && ./testGame && ./testUtils
 
 $(TEST_BUILD_DIR):
 	mkdir -p $(TEST_BUILD_DIR)

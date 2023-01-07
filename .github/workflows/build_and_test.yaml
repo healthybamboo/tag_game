@@ -1,0 +1,26 @@
+name: tag_game_unit_test_and_build
+on:
+  pull_request:
+    branches:
+      - main
+jobs:
+  gtest:
+    name: Run tests with google test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout submodule
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          submodules: true
+
+      - name: enviromane is correct.
+        run: |
+          cmake --version
+          make --version
+      - name: Run Tests
+        run: |
+          make test
+      - name: Run Build
+        run: |
+          make buildup

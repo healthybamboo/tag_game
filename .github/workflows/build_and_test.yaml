@@ -13,9 +13,10 @@ jobs:
         with:
           fetch-depth: 0
           submodules: true
-
-      - name: enviromane is correct.
+      - name: check enviroment is correct.
         run: |
+          pwd 
+          ls 
           cmake --version
           make --version
       - name: Run Tests

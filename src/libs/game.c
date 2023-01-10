@@ -16,18 +16,19 @@
 
 // ゲームの初期化を行う関数
 int init_game(int board[BOARD_SIZE][BOARD_SIZE], player_t players[PLAYER_NUM]) {
+  int i,j;
   // ハンターの番号をランダムに決定
   int hunter_num = get_random_number((unsigned)time(NULL), 0, PLAYER_NUM - 1);
 
   // 1.ボードを-1で初期化
-  for (int i = 0; i < BOARD_SIZE; i++) {
-    for (int j = 0; j < BOARD_SIZE; j++) {
+  for (i = 0; i < BOARD_SIZE; i++) {
+    for (j = 0; j < BOARD_SIZE; j++) {
       board[i][j] = -1;
     }
   }
 
   // 2.プレイヤー情報を初期化
-  for (int i = 0; i < PLAYER_NUM; i++) {
+  for (i = 0; i < PLAYER_NUM; i++) {
     int x, y;
     do {
       x = get_random_number((unsigned)time(NULL), 0, BOARD_SIZE - 1);

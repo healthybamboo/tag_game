@@ -1,7 +1,5 @@
 #include "game.h"
 
-#include "setting.h"
-
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,15 +8,17 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "utils.h"
 #include "setting.h"
-
+#include "utils.h"
 
 // ゲームの初期化を行う関数
 int init_game(int board[BOARD_SIZE][BOARD_SIZE], player_t players[PLAYER_NUM]) {
-  int i,j;
+  int i, j;
+  // 乱数の初期化
+  srand((unsigned)time(NULL));
+
   // ハンターの番号をランダムに決定
-  int hunter_num = get_random_number((unsigned)time(NULL), 0, PLAYER_NUM - 1);
+  int hunter_num = get_random_number(0, PLAYER_NUM - 1);
 
   // 1.ボードを-1で初期化
   for (i = 0; i < BOARD_SIZE; i++) {
@@ -31,8 +31,8 @@ int init_game(int board[BOARD_SIZE][BOARD_SIZE], player_t players[PLAYER_NUM]) {
   for (i = 0; i < PLAYER_NUM; i++) {
     int x, y;
     do {
-      x = get_random_number((unsigned)time(NULL), 0, BOARD_SIZE - 1);
-      y = get_random_number((unsigned)time(NULL), 0, BOARD_SIZE - 1);
+      x = get_random_number(0, BOARD_SIZE - 1);
+      y = get_random_number(0, BOARD_SIZE - 1);
     } while (board[x][y] != -1);
 
     players[i].x = x;

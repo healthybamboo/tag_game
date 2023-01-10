@@ -2,6 +2,71 @@
 
 extern "C" {
 #include "../src/libs/game.h"
+#include "../src/libs/setting.h"
+}
+
+/* 初期化についてのテスト*/
+class Init_Game : public ::testing::Test {
+ protected:
+  virtual void SetUp() {
+    // 結果を安定させるためにシードを0に設定
+    srand(0);
+  }
+  int board[BOARD_SIZE][BOARD_SIZE];
+  player_t players[PLAYER_NUM];
+};
+
+// プレイヤーが正しい数、配置されているかを確認する。（多かったり少なかったりしていないか）
+TEST_F(Init_Game, player_num_is_correct) {
+  int player_count;
+  // 試行回数(1000回やれば十分である、10×10ならば、99.999％で同じ座標になる。これを確認する)
+  int N = 1000;
+
+  for (int n = 0; n <= N; n++) {
+    // 処理を呼び出す
+    init_game(board, players);
+    // プレイヤーの数を数える
+    player_count = 0;
+    for (int i = 0; i < BOARD_SIZE; i++) {
+      for (int j = 0; j < BOARD_SIZE; j++) {
+        if (board[i][j] != -1) {
+          player_count++;
+        }
+      }
+    }
+    // プレイヤー数がMAX_PLAYER_NUMであることを確認する
+    EXPECT_EQ(player_count, PLAYER_NUM);
+  }
+}
+
+// プレイヤーが正しいポジションにいるかを確認する（特に、同じ座標がランダム値で得られた場合に正しく回避できているかを確認する）
+TEST_F(Init_Game, player_position_is_correct) {
+  // 試行回数(1000回やれば十分である、10×10ならば、99.999％で同じ座標になる。これを確認する)
+  int N = 1000;
+
+  for (int n = 0; n <= N; n++) {
+    // 処理を呼び出す
+    init_game(board, players);
+
+    // プレイヤーの位置が違うことを確認する(x座標、y座標のどちらも同じはダメ)
+    EXPECT_EQ(players[0].x == players[1].x && players[0].y == players[1].y, 0);
+  }
+}
+
+// 鬼と逃走者が最低１人ずつ存在していることを確認する
+TEST_F(Init_Game, exit_hunter_and_runner) {
+  int hunter_num = 0;
+  int fugtive_num = 0;
+  init_game(board, players);
+  for (int i = 0; i < PLAYER_NUM; i++) {
+    if (players[i].is_hunter)
+      hunter_num++;
+    else
+      fugtive_num++;
+  }
+  // 　それぞれ一以上あるか確認する
+  EXPECT_GE(hunter_num, 1);
+  EXPECT_GE(fugtive_num, 1);
 }
 
 /* <移動に関するテスト>*/
@@ -584,4 +649,3 @@ TEST_F(Result_of_Move, hunter_capture_fugtive) {
   // プレイヤー０のステータスが敗北になっていることを確認する
   EXPECT_EQ(players[0].status, 1);
 }
-

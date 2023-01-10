@@ -13,6 +13,8 @@
 #include "libs/utils.h"
 
 int main(int argc, char *argv[]) {
+  // 乱数の種を設定
+  srand((unsigned)time(NULL));
   int i;
   // 引数の数が正しくない場合はエラーを出力して終了
   if (argc != 4) {

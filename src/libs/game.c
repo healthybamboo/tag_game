@@ -14,8 +14,6 @@
 // ゲームの初期化を行う関数
 int init_game(int board[BOARD_SIZE][BOARD_SIZE], player_t players[PLAYER_NUM]) {
   int i, j;
-  // 乱数の初期化
-  srand((unsigned)time(NULL));
 
   // ハンターの番号をランダムに決定
   int hunter_num = get_random_number(0, PLAYER_NUM - 1);
@@ -31,16 +29,17 @@ int init_game(int board[BOARD_SIZE][BOARD_SIZE], player_t players[PLAYER_NUM]) {
   for (i = 0; i < PLAYER_NUM; i++) {
     int x, y;
     do {
+      // ランダムに座標を取得
       x = get_random_number(0, BOARD_SIZE - 1);
       y = get_random_number(0, BOARD_SIZE - 1);
-    } while (board[x][y] != -1);
+    } while (board[y][x] != -1);
 
     players[i].x = x;
     players[i].y = y;
     players[i].is_hunter = (i == hunter_num) ? 1 : 0;
     players[i].status = 0;
 
-    board[x][y] = i;
+    board[y][x] = i;
   }
 
   return 0;

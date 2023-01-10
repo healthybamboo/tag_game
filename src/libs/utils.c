@@ -49,11 +49,8 @@ int convert_key(int key) {
 }
 
 // 最小値から最大値までの乱数を返す関数
-int get_random_number(unsigned int seed, int min, int max) {
+int get_random_number(int min, int max) {
   int res;
-  // 乱数の初期化
-  srand(seed);
-
   // 乱数の生成
   res = (rand() % (max - min + 1)) + min;
   return res;

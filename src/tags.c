@@ -13,6 +13,9 @@
 #include "libs/utils.h"
 
 int main(int argc, char *argv[]) {
+  // 乱数の種を設定
+  srand((unsigned)time(NULL));
+  int i;
   // 引数の数が正しくない場合はエラーを出力して終了
   if (argc != 4) {
     printf("Usage: %s <port number> <disp ip> <disp port>\n", argv[0]);
@@ -76,7 +79,7 @@ int main(int argc, char *argv[]) {
   printf("WAITING FOR CONNECTION...\n");
 
   // 接続を受け付ける
-  for (int i = 0; i < MAX_CLIENT; i++) {
+  for (i = 0; i < MAX_CLIENT; i++) {
     tcp_csock[i] = accept_connection(tcp_sock, from_addr);
     printf("CONNECTED %d\n", i + 1);
   }
@@ -86,7 +89,7 @@ int main(int argc, char *argv[]) {
 
   /* マッチング部分 */
   // MATHING: IDを送信して、クライアントにゲームの開始を通知する
-  for (int i = 0; i < MAX_CLIENT; i++) {
+  for (i = 0; i < MAX_CLIENT; i++) {
     char msg[BUFFSIZE];
     memset(msg, 0, sizeof(msg));
 
@@ -148,7 +151,7 @@ int main(int argc, char *argv[]) {
         char result_msg[BUFFSIZE];
 
         // 文字列に埋め込む
-        for (int i = 0; i < MAX_CLIENT; i++) {
+        for (i = 0; i < MAX_CLIENT; i++) {
           if (DEBUG) printf("DEBUG:id=%d, status=%d\n", i, players[i].status);
           // 文字列にステータスを埋め込む
           sprintf(result_msg, "S %d", players[i].status);

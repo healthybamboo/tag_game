@@ -5,4 +5,4 @@ int getch(void);
 int convert_key(int key);
 
 // 最小値から最大値までの乱数を返す関数
-int get_random_number(unsigned int seed, int min, int max);
+int get_random_number(int min, int max);

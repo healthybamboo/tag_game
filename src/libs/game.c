@@ -1,7 +1,5 @@
 #include "game.h"
 
-#include "setting.h"
-
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,36 +8,38 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "utils.h"
 #include "setting.h"
-
+#include "utils.h"
 
 // ゲームの初期化を行う関数
 int init_game(int board[BOARD_SIZE][BOARD_SIZE], player_t players[PLAYER_NUM]) {
+  int i, j;
+
   // ハンターの番号をランダムに決定
-  int hunter_num = get_random_number((unsigned)time(NULL), 0, PLAYER_NUM - 1);
+  int hunter_num = get_random_number(0, PLAYER_NUM - 1);
 
   // 1.ボードを-1で初期化
-  for (int i = 0; i < BOARD_SIZE; i++) {
-    for (int j = 0; j < BOARD_SIZE; j++) {
+  for (i = 0; i < BOARD_SIZE; i++) {
+    for (j = 0; j < BOARD_SIZE; j++) {
       board[i][j] = -1;
     }
   }
 
   // 2.プレイヤー情報を初期化
-  for (int i = 0; i < PLAYER_NUM; i++) {
+  for (i = 0; i < PLAYER_NUM; i++) {
     int x, y;
     do {
-      x = get_random_number((unsigned)time(NULL), 0, BOARD_SIZE - 1);
-      y = get_random_number((unsigned)time(NULL), 0, BOARD_SIZE - 1);
-    } while (board[x][y] != -1);
+      // ランダムに座標を取得
+      x = get_random_number(0, BOARD_SIZE - 1);
+      y = get_random_number(0, BOARD_SIZE - 1);
+    } while (board[y][x] != -1);
 
     players[i].x = x;
     players[i].y = y;
     players[i].is_hunter = (i == hunter_num) ? 1 : 0;
     players[i].status = 0;
 
-    board[x][y] = i;
+    board[y][x] = i;
   }
 
   return 0;

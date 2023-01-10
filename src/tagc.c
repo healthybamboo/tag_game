@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
 
   // 引数の数をチャック
   if (argc != 3) {
-    printf("Usage: %s <IP address> <port number>", argv[0]);
+    printf("Usage: %s <IP address> <port number>\n", argv[0]);
     exit(1);
   }
 

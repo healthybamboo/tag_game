@@ -3,7 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/shm.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -12,10 +14,29 @@
 #include "libs/setting.h"
 #include "libs/utils.h"
 
+enum { SEGMENT_SIZE = 0x6400 };
+
 int main(int argc, char *argv[]) {
+  // 添字の宣言
+  int i;
+
+  // 並行処理用
+  pid_t alive;
+  pid_t pid;
+  int status;
+
+  int segment_id[2];
+
+  for (i = 0; i < 2; i++) {
+    segment_id[i] = shmget(IPC_PRIVATE, SEGMENT_SIZE,
+                           IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
+  }
+
+  char *time_view = (char *)shmat(segment_id[0], 0, 0);
+  char *board_view = (char *)shmat(segment_id[1], 0, 0);
+
   // 乱数の種を設定
   srand((unsigned)time(NULL));
-  int i;
   // 引数の数が正しくない場合はエラーを出力して終了
   if (argc != 4) {
     printf("Usage: %s <port number> <disp ip> <disp port>\n", argv[0]);
@@ -29,8 +50,8 @@ int main(int argc, char *argv[]) {
   player_t players[PLAYER_NUM];
   init_game(board, players);
 
-  // board_view
-  char board_view[1024];
+  // disp用のview
+  char disp_view[BUFFSIZE];
 
   // UDPソケットを作成
   int udp_sock;
@@ -94,7 +115,7 @@ int main(int argc, char *argv[]) {
     memset(msg, 0, sizeof(msg));
 
     // IDを文字列に埋め込む
-    sprintf(msg, "M %d %d %d", udp_port, i,players[i].is_hunter);
+    sprintf(msg, "M %d %d %d", udp_port, i, players[i].is_hunter);
 
     // 送信する
     send_tcp_msg(tcp_csock[i], msg);
@@ -104,72 +125,139 @@ int main(int argc, char *argv[]) {
 
   printf("GAME START!!\n");
 
-  // ゲームの　メインループ
-  while (1) {
-    // ビューを更新する
-    set_board_view(board_view, players);
+  // 並列処理を開始
+  pid = fork();
 
-    // ビューを送信する
-    send_udp_msg(disp_sock, disp_addr, board_view);
+  if (pid > 0) {
+    // 親プロセス
+    int count = 0;
+    while (count++ < GAME_TIME_SEC) {
+      // 子プロセスが終了していたら、whileを抜ける
+      alive = waitpid(pid, &status, WNOHANG);
+      // 子プロセスが終了していないなら続行
+      if (alive == 0) {
+        // 時間のviewを変更する
+        set_time_view(time_view, GAME_TIME_SEC - count);
 
-    // ビュー表示する`
-    if (DEBUG) printf("%s\n", board_view);
+        // disp_viewを設定する
+        set_disp_view(disp_view, time_view, board_view);
 
-    // TODO.MCでメッセージを送信する
+        // dispへviewを送信する
+        send_udp_msg(disp_sock, disp_addr, disp_view);
 
-    // 操作メッセージ用のバッファ
-    char operation_msg[BUFFSIZE];
-
-    memset(operation_msg, 0, sizeof(operation_msg));
-
-    // 操作メッセージを受信する
-    recv_udp_msg(udp_sock, from_addr, operation_msg, BUFFSIZE);
-
-    // 操作メッセージから必要な情報を取得する。
-    if (operation_msg[0] == 'O') {
-      int result = 0;
-      int target, command;
-      // 操作を取得
-      sscanf(operation_msg, "O %d %d", &target, &command);
-
-      // 操作を実行
-      if (DEBUG) printf("DEBUG:ope target=%d,command=%d \n", target, command);
-
-      result = move(board, players, command, target);
-
-      if (DEBUG) printf("DEBUG:move_result=%d\n", result);
-      if (DEBUG) printf("DEBUG:player=%d,", target);
-      if (DEBUG) printf("x=%d,y=%d\n", players[target].x, players[target].y);
-
-      // 勝敗を通知する
-      if (result == 1 || result == 2) {
-        printf("GAME FINISH!!\n");
-
-        // dispに終了を通知する
-        send_udp_msg(disp_sock, disp_addr, "exit");
-
-        char result_msg[BUFFSIZE];
-
-        // 文字列に埋め込む
-        for (i = 0; i < MAX_CLIENT; i++) {
-          if (DEBUG) printf("DEBUG:id=%d, status=%d\n", i, players[i].status);
-          // 文字列にステータスを埋め込む
-          sprintf(result_msg, "S %d", players[i].status);
-          // 送信する
-          send_tcp_msg(tcp_csock[i], result_msg);
-
-          // ソケットを閉じる
-          close(tcp_csock[i]);
-        }
-        // 処理を終了する
-        break;
+        // ループ１回につき、１秒待つ。
+        sleep(1);
       }
-    } else {
-      // 操作メッセージが不正な場合は、処理をスキップする
-      perror("ERROR:invalid operation");
-      continue;
+      // エラー発生ならエラーメッセージ出力
+      else if (alive == -1) {
+        printf("waitpid error\n");
+      } else {
+        // 子プロセスが終了しているのであれば、親プロセスも終了させる。
+        if (DEBUG) printf("child process is dead %d", alive);
+        exit(0);
+      }
     }
+
+    printf("TIME OUT!\n");
+
+    // 子プロセスを終了
+    kill(pid, SIGKILL);
+
+    // dispに終了を通知する
+    send_udp_msg(disp_sock, disp_addr, "exit");
+
+    char result_msg[BUFFSIZE];
+
+    // 文字列に埋め込む
+    for (i = 0; i < MAX_CLIENT; i++) {
+      // 文字列にステータスを埋め込む(ハンターなら負け、逃走者なら勝ち)
+      sprintf(result_msg, "S %d", players[i].is_hunter ? 1 : 2);
+
+      // 送信する
+      send_tcp_msg(tcp_csock[i], result_msg);
+
+      // ソケットを閉じる
+      close(tcp_csock[i]);
+    }
+
+  } else if (pid == 0) {
+    // 子プロセス
+    // ゲームの　メインループ
+    while (1) {
+      // ビューを更新する
+      set_board_view(board_view, players);
+
+      // dispへ送信するのビューを設定する
+      set_disp_view(disp_view, time_view, board_view);
+
+      // ビューを送信する
+      send_udp_msg(disp_sock, disp_addr, disp_view);
+
+      // ビュー表示する`
+      if (DEBUG) printf("%s\n", disp_view);
+
+      // 操作メッセージ用のバッファ
+      char operation_msg[BUFFSIZE];
+
+      memset(operation_msg, 0, sizeof(operation_msg));
+
+      // 操作メッセージを受信する
+      recv_udp_msg(udp_sock, from_addr, operation_msg, BUFFSIZE);
+
+      // 操作メッセージから必要な情報を取得する。
+      if (operation_msg[0] == 'O') {
+        int result = 0;
+        int target, command;
+        // 操作を取得
+        sscanf(operation_msg, "O %d %d", &target, &command);
+
+        // 操作を実行
+        if (DEBUG) printf("DEBUG:ope target=%d,command=%d \n", target, command);
+
+        result = move(board, players, command, target);
+
+        if (DEBUG) printf("DEBUG:move_result=%d\n", result);
+
+        // 勝敗を通知する
+        if (result == 1 || result == 2) {
+          printf("GAME FINISH!!\n");
+
+          // dispに終了を通知する
+          send_udp_msg(disp_sock, disp_addr, "exit");
+
+          char result_msg[BUFFSIZE];
+
+          // 文字列に埋め込む
+          for (i = 0; i < MAX_CLIENT; i++) {
+            if (DEBUG) printf("DEBUG:id=%d, status=%d\n", i, players[i].status);
+            // 文字列にステータスを埋め込む
+            sprintf(result_msg, "S %d", players[i].status);
+            // 送信する
+            send_tcp_msg(tcp_csock[i], result_msg);
+
+            // ソケットを閉じる
+            close(tcp_csock[i]);
+          }
+          // 処理を終了する
+          break;
+        }
+      } else {
+        // 操作メッセージが不正な場合は、処理をスキップする
+        perror("ERROR:invalid operation");
+        continue;
+      }
+    }
+  } else {
+    perror("fork");
   }
+
+  if (DEBUG) printf("START POST-PROCESSING.\n");
+  // 共有メモリを解放する
+  shmdt(time_view);
+  shmctl(segment_id[0], IPC_RMID, 0);
+  shmdt(board_view);
+  shmctl(segment_id[1], IPC_RMID, 0);
+
   // アドレス構造体の解放
   free(udp_server_addr);
   free(tcp_server_addr);
@@ -178,4 +266,5 @@ int main(int argc, char *argv[]) {
   // ソケットを閉じる
   close(udp_sock);
   close(tcp_sock);
+  if (DEBUG) printf("BYE!\n");
 }

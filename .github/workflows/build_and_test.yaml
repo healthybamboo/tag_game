@@ -8,12 +8,12 @@ jobs:
     name: Run tests with google test
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout submodule
+      - name: Checkout
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
           submodules: true
-      - name: check enviroment is correct.
+      - name: echo enviroment.
         run: |
           pwd 
           ls 
@@ -22,6 +22,15 @@ jobs:
       - name: Run Tests
         run: |
           make test
+      - name: Clean up build Dir.
+        run : |
+          make clean
+  buildup:
+    name: Build up with cmake
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v3
       - name: Run Build
         run: |
           make buildup

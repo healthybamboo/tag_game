@@ -41,6 +41,12 @@ int move(int board[BOARD_SIZE][BOARD_SIZE], player_t players[PLAYER_NUM],
          int direction, int mover);
 
 /* UI関連の処理 */
+// dispに送信するviewを作成する関数
+void set_disp_view(char *disp_view, char *time_view, char *board_view);
+
+// timeのviewを作成する関数
+void set_time_view(char *buff, int time);
+
 // 盤面の見た目を作る関数
 void set_board_view(char *buff, player_t players[PLAYER_NUM]);
 

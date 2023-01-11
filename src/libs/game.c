@@ -201,6 +201,25 @@ int move(int board[BOARD_SIZE][BOARD_SIZE], player_t players[PLAYER_NUM],
   // それ以外の場合は何もしない
   return 0;
 }
+
+// dispへ送信するviewを設定する関数
+void set_disp_view(char *disp_view, char *time_view, char *board_view) {
+  // 画面をクリアする特殊文字（エスケープ・シーケンス）
+  memset(disp_view, 0, sizeof(disp_view));
+  strcpy(disp_view, "\033[2J\033[0;0H\n");
+  strcat(disp_view, time_view);
+  strcat(disp_view, board_view);
+}
+
+// 時間のビューを設定する関数
+void set_time_view(char *buff, int time) {
+  memset(buff, 0, sizeof(*buff));
+
+  char time_view[100];
+  sprintf(time_view, "TIME:%d[sec]\n", time);
+  strcat(buff, time_view);
+}
+
 // 10 x 10 の盤面を表示する文字列を作成する．
 void set_board_view(char *buff, player_t players[PLAYER_NUM]) {
   int i, j, k;

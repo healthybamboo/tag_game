@@ -163,8 +163,8 @@ int main(int argc, char *argv[]) {
     // 子プロセスを終了
     kill(pid, SIGKILL);
 
-    // dispに終了を通知する
-    send_udp_msg(disp_sock, disp_addr, "exit");
+    // dispに逃走者の勝利を通知する
+    send_udp_msg(disp_sock, disp_addr, "Fugtive Victory!\n");
 
     char result_msg[BUFFSIZE];
 
@@ -222,8 +222,8 @@ int main(int argc, char *argv[]) {
         if (result == 1 || result == 2) {
           printf("GAME FINISH!!\n");
 
-          // dispに終了を通知する
-          send_udp_msg(disp_sock, disp_addr, "exit");
+          // dispに鬼の勝利を通知する
+          send_udp_msg(disp_sock, disp_addr, "Hunter Victory!\n");
 
           char result_msg[BUFFSIZE];
 

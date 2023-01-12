@@ -205,7 +205,7 @@ int move(int board[BOARD_SIZE][BOARD_SIZE], player_t players[PLAYER_NUM],
 // dispへ送信するviewを設定する関数
 void set_disp_view(char *disp_view, char *time_view, char *board_view) {
   // 画面をクリアする特殊文字（エスケープ・シーケンス）
-  memset(disp_view, 0, sizeof(disp_view));
+  memset(disp_view, 0, sizeof(*disp_view));
   strcpy(disp_view, "\033[2J\033[0;0H\n");
   strcat(disp_view, time_view);
   strcat(disp_view, board_view);

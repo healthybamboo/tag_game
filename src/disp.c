@@ -56,16 +56,9 @@ int main(int argc, char *argv[]) {
       /* 受信する */
       recv_udp_msg(sock, addr, buff, BUFFSIZE);
 
-      if (strcmp(buff, "exit") == 0) {
-        /* exitを受信したら、exitを表示して終了する*/
-        printf("exit\n");
-        break;
-      } else {
-        /* 送信されてきたメッセージをそのまま表示する */
-        printf("%s\n", buff);
-      }
+      /* 送信されてきたメッセージをそのまま表示する */
+      printf("%s\n", buff);
     }
-
     /* ソケットを閉じる */
     close(sock);
 
@@ -109,18 +102,11 @@ int main(int argc, char *argv[]) {
       // 文字列として扱うため最後を \0 で終端して表示する
       buff[bytes] = '\0';
 
-      if (strcmp(buff, "exit") == 0) {
-        printf("exit\n");
-        break;
-      } else {
-        // 受信したメッセージを表示する
-        printf("%s", buff);
-      }
+      // 受信したメッセージを表示する
+      printf("%s", buff);
     }
-
     // ソケットを閉じる
     close(sock);
-    
     // アドレス構造体のメモリを解放する
     free(addr);
     free(client);

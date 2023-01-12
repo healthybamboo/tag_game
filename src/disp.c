@@ -53,9 +53,6 @@ int main(int argc, char *argv[]) {
     join_multicast_group(sock, multicast, ip);
 
     while (1) {
-      /* メッセージをクリアする*/
-      system("clear");
-
       /* 受信する */
       recv_udp_msg(sock, addr, buff, BUFFSIZE);
 
@@ -111,9 +108,6 @@ int main(int argc, char *argv[]) {
 
       // 文字列として扱うため最後を \0 で終端して表示する
       buff[bytes] = '\0';
-
-      // 前の画面を消去する
-      system("clear");
 
       if (strcmp(buff, "exit") == 0) {
         printf("exit\n");

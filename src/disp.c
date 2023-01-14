@@ -15,13 +15,24 @@
 int main(int argc, char *argv[]) {
   // マルチキャストに対応した環境用の処理
   if (USE_MULTI_CAST) {
-    char *ip;
+    // マルチキャスト用のIPアドレスを設定
+    char ip[16];
+    // マルチキャスト用のポート番号を設定
     unsigned short port;
+
+    // マルチキャスト用のソケット構造体を宣言
     int sock;
+
+    // 受信用のバッファを宣言
     char buff[BUFFSIZE];
+
+    // 受信したバイト数を格納する変数を宣言
     int bytes;
+    // アドレス構造体を宣言
     struct sockaddr_in *addr;
     addr = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in));
+
+    // マルチキャスト用のアドレス構造体を宣言
     struct ip_mreq *multicast;
     multicast = (struct ip_mreq *)malloc(sizeof(struct ip_mreq));
 
@@ -32,7 +43,7 @@ int main(int argc, char *argv[]) {
     }
 
     /* 一つ目の引数: IP アドレス */
-    ip = argv[1];
+    strcpy(ip, argv[1]);
 
     /* 二つ目の引数: ポート番号 */
     port = atoi(argv[2]);
@@ -70,20 +81,27 @@ int main(int argc, char *argv[]) {
 
     // マルチキャスト非対応の環境用(DEBUG用)
   } else {
-    char *ip;
+    // ポート番号を格納する変数を宣言
     unsigned short port;
+    // ソケットを格納する変数を宣言
     int sock;
+    // 受信用のバッファを宣言
     char buff[BUFFSIZE];
+    // 受信したバイト数を格納する変数を宣言
     int bytes;
+
+    // 引数が二つなければ使用方法を表示して終了する
     if (argc != 2) {
       fprintf(stderr, "Usage: %s <Port>", argv[0]);
 
       exit(1);
     }
+    // アドレス構造体を宣言（サーバー用とクライアントの情報を格納するために２つ）
     struct sockaddr_in *addr, *client;
     addr = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in));
     client = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in));
 
+    // 引数からポート番号を取得する
     port = atoi(argv[1]);
 
     // ソケットを作成する
@@ -107,6 +125,7 @@ int main(int argc, char *argv[]) {
     }
     // ソケットを閉じる
     close(sock);
+
     // アドレス構造体のメモリを解放する
     free(addr);
     free(client);

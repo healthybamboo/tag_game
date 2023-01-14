@@ -7,16 +7,16 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "libs/setting.h"
 #include "libs/communication.h"
 #include "libs/game.h"
+#include "libs/setting.h"
 #include "libs/utils.h"
 
 int main(int argc, char *argv[]) {
   // ソケット用の変数を宣言
   int tcp_sock, udp_sock;
 
-  // ポート番号を設定
+  // ポート番号を格納する変数を宣言
   unsigned short tcp_port;
   unsigned short udp_port;
 
@@ -41,8 +41,6 @@ int main(int argc, char *argv[]) {
   // 接続先のIPアドレスを設定する
   char ip[16];
 
-  // TODO.エラー処理
-
   // エラー処理後、接続先のIPアドレスを設定
   strcpy(ip, argv[1]);
 
@@ -54,8 +52,6 @@ int main(int argc, char *argv[]) {
     perror("Incorrect Port error.\n");
     exit(1);
   }
-
-  // TODO.ポート番号をチェック
 
   // アドレス構造体にポート番号を設定
   set_target_addr(tcp_server_addr, ip, tcp_port);
@@ -70,29 +66,40 @@ int main(int argc, char *argv[]) {
   // UDP通信のポート番号をサーバーから受信
   char match_msg[BUFFSIZE];
   int id;
+
   printf("Waiting for match...\n");
+
   // マッチングメッセージを待つ
   recv_tcp_msg(tcp_sock, match_msg, sizeof(match_msg));
 
-  // TODO.エラー処理
+  // マッチングメッセージを解析(UDP通信のポート番号 + 操作する駒のID +
+  // 鬼かどうか)
   sscanf(match_msg, "M %hd %d %d", &udp_port, &id, &is_hunter);
+
   if (DEBUG) printf("DEBUG:udp_port: %d\n", udp_port);
+
+  // TODO.IDは使わないので、後で消す
   printf("Matched! Your ID is %d.\n", id);
   printf("You are %s.\n", is_hunter ? "hunter : *" : "fugtive : o");
 
+  // UDP通信のアドレス構造体を設定(TODO.set_target_addr()を使うでないと、自ホストのサーバーとしか通信できない)
   set_server_addr(udp_server_addr, udp_port);
+
   // 並列処理を開始
   pid = fork();
+  /*親プロセス(TCP通信でメッセージを受信)*/
   if (pid > 0) {
-    // 親プロセス：TCP通信でメッセージを受信
     if (DEBUG) printf("DEBUG:start parent process(%d).\n", getpid());
 
+    // 受信した、プレイヤーの状態メッセージを格納する変数を宣言
     char status_msg[128];
+    // 受信した、プレイヤーの状態を格納する変数
     int state;
 
     while (1) {
       // メッセージを受信
       recv_tcp_msg(tcp_sock, status_msg, sizeof(status_msg));
+
       if (DEBUG) printf("DEBUG:recv_msg: %s\n", status_msg);
 
       // メッセージを解析
@@ -102,11 +109,12 @@ int main(int argc, char *argv[]) {
       if (code == 'S') {
         // メッセージの先頭がSの場合、IDを取得
         sscanf(status_msg, "S %d", &state);
+
         if (DEBUG) printf("DEBUG:recv_state: %d\n", state);
 
         // 勝敗がついたら終了
         if (state == 1 || state == 2) {
-          // 子プロセスを終了
+          // 子プロセスを終了(操作を受け付けないようにする)
           kill(pid, SIGKILL);
           break;
         }
@@ -114,24 +122,36 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Game is over.\n");
+
     char buff[BUFSIZ];
+    // 結果を格納する変数(TODO.buffをresult_buffに変更する)
     set_result_view(buff, state);
+
+    // 結果を表示
     printf("%s", buff);
 
-  } else if (pid == 0) {
-    // 子プロセス：UDP通信でメッセージを送信
+  } /* 子プロセス（操作を受け付け、UDP通信でメッセージを送信）*/
+  else if (pid == 0) {
     if (DEBUG) printf("DEBUG:start child process.\n");
 
+    // メッセージを格納する変数を宣言(TODO.msgをoperation_msgに変更する)
     char msg[128];
+
+    // メッセージを初期化
     memset(msg, 0, sizeof(msg));
+
     if (DEBUG) printf("DEBUG: parent process is %d\n", getppid());
+
     while (1) {
       // 親プロセスが死んだら終了(これがないと無限ループになる)
       if (getppid() == 1) break;
+
       if (DEBUG) printf("DEBUG:input wasd to move.\n");
 
       // メッセージを入力
       int ch = getch();
+
+      // 入力されたキーを変換
       int key = convert_key(ch);
 
       // w,a,s,d以外の入力は無視
@@ -142,7 +162,6 @@ int main(int argc, char *argv[]) {
         // メッセージを送信
         send_udp_msg(udp_sock, udp_server_addr, msg);
 
-        // メッセージを表示
         if (DEBUG) printf("DEBUG:send_msg:%s\n", msg);
       }
     }

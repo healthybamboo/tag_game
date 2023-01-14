@@ -17,47 +17,57 @@
 enum { SEGMENT_SIZE = 0x6400 };
 
 int main(int argc, char *argv[]) {
-  // 添字の宣言
+  // 添字の宣言(ループ用)
   int i;
 
-  // 並行処理用
+  // プロセスID
   pid_t alive;
   pid_t pid;
+
+  // プロセスのステータス
   int status;
 
+  // 共有メモリのセグメントID
   int segment_id[2];
 
+  // 共有メモリのセグメントを作成
   for (i = 0; i < 2; i++) {
     segment_id[i] = shmget(IPC_PRIVATE, SEGMENT_SIZE,
                            IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
   }
 
+  // 共有メモリをアタッチ
+  // 時間表示用のview
   char *time_view = (char *)shmat(segment_id[0], 0, 0);
+  // 盤面表示用のview
   char *board_view = (char *)shmat(segment_id[1], 0, 0);
 
   // 乱数の種を設定
   srand((unsigned)time(NULL));
+
   // 引数の数が正しくない場合はエラーを出力して終了
   if (argc != 4) {
     printf("Usage: %s <port number> <disp ip> <disp port>\n", argv[0]);
     exit(1);
   }
-  char *disp_ip = argv[2];
-  unsigned short disp_port = atoi(argv[3]);
+
+  // 盤面の状態を保持する二次元配列
+  int board[BOARD_SIZE][BOARD_SIZE];
+
+  // プレイヤーの情報を保持する構造体の配列
+  player_t players[PLAYER_NUM];
 
   // ゲームの初期化
-  int board[BOARD_SIZE][BOARD_SIZE];
-  player_t players[PLAYER_NUM];
   init_game(board, players);
 
   // disp用のview
   char disp_view[BUFFSIZE];
 
-  // UDPソケットを作成
+  // UDPソケット用の変数
   int udp_sock;
   int disp_sock;
 
-  // TCPソケットを作成
+  // TCPソケット用の変数
   int tcp_sock, tcp_csock[2];
 
   // アドレス構造体
@@ -66,15 +76,21 @@ int main(int argc, char *argv[]) {
   tcp_server_addr = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in));
   disp_addr = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in));
 
-  // TODO.複数クライアントに対応するために、アドレス構造体を配列にする
+  // クライアントのアドレスを格納する構造体（引数用）
   from_addr = (struct sockaddr_in *)malloc(sizeof(struct sockaddr_in));
 
-  // ポートを設定（TODO.tcpについてはコマンドライン引数で設定できるようにする）
+  // ポートを設定
   unsigned short tpc_port;
   unsigned short udp_port;
 
   // ポート番号を設定
   tpc_port = atoi(argv[1]);
+
+  // ディスプレイのIPアドレスを設定
+  char *disp_ip = argv[2];
+
+  // ディスプレイのポート番号を設定
+  unsigned short disp_port = atoi(argv[3]);
 
   // ソケットを作成
   tcp_sock = make_tcp_socket();
@@ -90,8 +106,10 @@ int main(int argc, char *argv[]) {
   bind_sock(tcp_sock, tcp_server_addr);
   bind_sock(udp_sock, udp_server_addr);
 
+  // ソケットから割り当てられたポート番号を取得
   udp_port = get_port_number_from_sock(udp_sock);
 
+  // デバッグ用
   if (DEBUG) printf("udp-port is %d\n", udp_port);
 
   // 接続を待ち受ける
@@ -128,8 +146,8 @@ int main(int argc, char *argv[]) {
   // 並列処理を開始
   pid = fork();
 
+  /* 親プロセス*/
   if (pid > 0) {
-    // 親プロセス
     int count = 0;
     while (count++ < GAME_TIME_SEC) {
       // 子プロセスが終了していたら、whileを抜ける
@@ -180,20 +198,20 @@ int main(int argc, char *argv[]) {
       close(tcp_csock[i]);
     }
 
-  } else if (pid == 0) {
-    // 子プロセス
+  }
+  /* 子プロセス */
+  else if (pid == 0) {
     // ゲームの　メインループ
     while (1) {
-      // ビューを更新する
+      // 盤のビューを更新する
       set_board_view(board_view, players);
 
       // dispへ送信するのビューを設定する
       set_disp_view(disp_view, time_view, board_view);
 
-      // ビューを送信する
+      // ビューをdispへ送信する
       send_udp_msg(disp_sock, disp_addr, disp_view);
 
-      // ビュー表示する`
       if (DEBUG) printf("%s\n", disp_view);
 
       // 操作メッセージ用のバッファ
@@ -211,9 +229,9 @@ int main(int argc, char *argv[]) {
         // 操作を取得
         sscanf(operation_msg, "O %d %d", &target, &command);
 
-        // 操作を実行
         if (DEBUG) printf("DEBUG:ope target=%d,command=%d \n", target, command);
 
+        // 操作を実行
         result = move(board, players, command, target);
 
         if (DEBUG) printf("DEBUG:move_result=%d\n", result);
@@ -252,6 +270,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (DEBUG) printf("START POST-PROCESSING.\n");
+
   // 共有メモリを解放する
   shmdt(time_view);
   shmctl(segment_id[0], IPC_RMID, 0);
@@ -266,5 +285,6 @@ int main(int argc, char *argv[]) {
   // ソケットを閉じる
   close(udp_sock);
   close(tcp_sock);
+  // TODO. close disp_sock
   if (DEBUG) printf("BYE!\n");
 }

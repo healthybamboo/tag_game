@@ -285,6 +285,7 @@ int main(int argc, char *argv[]) {
   // ソケットを閉じる
   close(udp_sock);
   close(tcp_sock);
-  // TODO. close disp_sock
+  close(disp_sock);
+  
   if (DEBUG) printf("BYE!\n");
 }

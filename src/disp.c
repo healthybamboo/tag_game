@@ -15,8 +15,8 @@
 int main(int argc, char *argv[]) {
   // マルチキャストに対応した環境用の処理
   if (USE_MULTI_CAST) {
-    // マルチキャスト用のIPアドレスを設定(TODO.大きさを16byteに設定する、ポインタである意味はない)
-    char *ip;
+    // マルチキャスト用のIPアドレスを設定
+    char ip[16];
     // マルチキャスト用のポート番号を設定
     unsigned short port;
 
@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
     }
 
     /* 一つ目の引数: IP アドレス */
-    ip = argv[1];
+    strcpy(ip, argv[1]);
 
     /* 二つ目の引数: ポート番号 */
     port = atoi(argv[2]);
@@ -81,8 +81,6 @@ int main(int argc, char *argv[]) {
 
     // マルチキャスト非対応の環境用(DEBUG用)
   } else {
-    // TODO.いらないので消す
-    char *ip;
     // ポート番号を格納する変数を宣言
     unsigned short port;
     // ソケットを格納する変数を宣言
@@ -91,7 +89,7 @@ int main(int argc, char *argv[]) {
     char buff[BUFFSIZE];
     // 受信したバイト数を格納する変数を宣言
     int bytes;
-    
+
     // 引数が二つなければ使用方法を表示して終了する
     if (argc != 2) {
       fprintf(stderr, "Usage: %s <Port>", argv[0]);
@@ -127,7 +125,7 @@ int main(int argc, char *argv[]) {
     }
     // ソケットを閉じる
     close(sock);
-    
+
     // アドレス構造体のメモリを解放する
     free(addr);
     free(client);

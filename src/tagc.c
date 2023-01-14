@@ -78,8 +78,7 @@ int main(int argc, char *argv[]) {
 
   if (DEBUG) printf("DEBUG:udp_port: %d\n", udp_port);
 
-  // TODO.IDは使わないので、後で消す
-  printf("Matched! Your ID is %d.\n", id);
+  printf("Matched!\n");
   printf("You are %s.\n", is_hunter ? "hunter : *" : "fugtive : o");
 
   // UDP通信のアドレス構造体を設定(TODO.set_target_addr()を使うでないと、自ホストのサーバーとしか通信できない)
@@ -123,22 +122,22 @@ int main(int argc, char *argv[]) {
 
     printf("Game is over.\n");
 
-    char buff[BUFSIZ];
-    // 結果を格納する変数(TODO.buffをresult_buffに変更する)
-    set_result_view(buff, state);
+    char result_msg[BUFSIZ];
+    // 結果を格納する変数
+    set_result_view(result_msg, state);
 
     // 結果を表示
-    printf("%s", buff);
+    printf("%s", result_msg);
 
   } /* 子プロセス（操作を受け付け、UDP通信でメッセージを送信）*/
   else if (pid == 0) {
     if (DEBUG) printf("DEBUG:start child process.\n");
 
-    // メッセージを格納する変数を宣言(TODO.msgをoperation_msgに変更する)
-    char msg[128];
+    // メッセージを格納する変数を宣言
+    char operation_msg[128];
 
     // メッセージを初期化
-    memset(msg, 0, sizeof(msg));
+    memset(operation_msg, 0, sizeof(operation_msg));
 
     if (DEBUG) printf("DEBUG: parent process is %d\n", getppid());
 
@@ -157,12 +156,12 @@ int main(int argc, char *argv[]) {
       // w,a,s,d以外の入力は無視
       if (key != 0) {
         // メッセージを作成
-        sprintf(msg, "O %d %d", id, key);
+        sprintf(operation_msg, "O %d %d", id, key);
 
         // メッセージを送信
-        send_udp_msg(udp_sock, udp_server_addr, msg);
+        send_udp_msg(udp_sock, udp_server_addr, operation_msg);
 
-        if (DEBUG) printf("DEBUG:send_msg:%s\n", msg);
+        if (DEBUG) printf("DEBUG:send_msg:%s\n", operation_msg);
       }
     }
   } else {

@@ -30,16 +30,9 @@
 ### ゲームサーバー
 
 - 時間制限機能を実装する
-- フィールドに障害物を事前に配置しゲーム性を高める
-
-### ゲームクライアント
-
-- フィールドに障害物を表示させる
-- サーバーから時間情報を受け取り、残り時間を表示する
 
 ### 表示プログラム
 
-- 障害物を表示できるようにする
 - 時間情報を受け取り、残り時間を表示する
 
 # 外部設計
@@ -51,59 +44,53 @@
 **サーバーの起動**
 
 ```
-tags <port>
+tags <server port> <disp ip> <disp port>
 ```
 
 **ログ:実行時のログ**
+
+接続待ち
+
+```
+WAITING FOR CONNECTION...
+```
+
 接続時
 
 ```
-LOGIN : <userIP:userPort>
+CONNECTED : <user num>
 ```
 
 **ログ:ゲームが開始した時**
 
 ```
-START
-```
-
-**ログ:ユーザーが勝利した時**
-
-```
-WIN : <userIP:userPort>
-```
-
-**ログ:ユーザーが敗北した時**
-
-```
-LOSE : <userIP:userPort>
+GAME START!!
 ```
 
 **ログ:ゲームが終了した時**
 
 ```
-FINISH
+GAME FINISH!!
 ```
 
 **例**
 
 ```
-LOGIN 1
-LOGIN 2 1
-START
-WIN 1
-LOSE 2
-FINISH 1
+WAITING FOR CONNECTION...
+CONNECTED 1
+CONNECTED 2
+GAME START!!
+GAME FINISH!!
 ```
 
 ## ゲームクライアント
 
-**ゲーム接続中の画面**
+**マッチング画面**
 
 ```
-=========================
-PLEASE WAIT A FEW MOMENTS
-=========================
+Waiting for match...
+Matched!
+You are <hunter or fugtive> : <* or o>
 ```
 
 **勝利画面**
@@ -112,10 +99,6 @@ PLEASE WAIT A FEW MOMENTS
 ===================
   YOU ARE WINNER!
 ===================
--------------------
-continue : c
-quit : q
--------------------
 ```
 
 **敗者画面**
@@ -124,10 +107,6 @@ quit : q
 ===================
   YOU ARE LOSER!
 ===================
--------------------
-continue : c
-quit : q
--------------------
 ```
 
 ### 表示プログラム
@@ -135,7 +114,7 @@ quit : q
 **ゲーム中**
 
 ```
-TIME:999s
+TIME:<SEC>s
 +-+-+-+-+-+-+-+-+-+-+
 |*| | | | | | | | | |
 +-+-+-+-+-+-+-+-+-+-+
@@ -156,58 +135,65 @@ TIME:999s
 
 **ゲーム終了後**
 
+逃走者が勝利した場合
+
 ```
-WINER is <userIP:userPort>!
-LOSER is <userIP:userPort>!
+Fugtive Victory!
 ```
 
-- 勝者と敗者を表示する。
+鬼が勝利した場合
+
+```
+Hunter Victory!
+```
 
 ## ゲーム時の通信フロー
 
 ```mermaid
-flowchart TB
-  subgraph viewer
-    tv[Viewer]
-  end
-  subgraph client
-    tc1[Client1]
-    tc2[Client2]
-  end
-  subgraph server
-    ts((Server))
-  end
-  ts==state 1==>tc1
-  ts==state 2==>tc2
-  ts-.->|view| tv
-  tc1-->|operation 1|ts
-  tc2-->|operation 2|ts
+flowchart TB;
+  subgraph viewer;
+    tv[Viewer];
+  end;
+  subgraph client;
+    tc1[Client1];
+    tc2[Client2];
+  end;
+  subgraph server;
+    ts((Server));
+  end;
+  ts==state 1==>tc1;
+  ts==state 2==>tc2;
+  ts-.->|view| tv;
+  tc1-->|operation 1|ts;
+  tc2-->|operation 2|ts;
 ```
+
+TCP:太線, UDP:線, Multicast:点線,
 
 # 詳細設計
 
 ## 通信内容
 
 ```mermaid
-sequenceDiagram
-    participant Client1
-    participant Client2
-    participant Server
-    participant Viewer
+sequenceDiagram;
+    participant Client1;
+    participant Client2;
+    participant Server;
+    participant Viewer;
 
-    Client1->Server:connect(TCP)
-    Client2->Server:connect(TCP)
+    Client1->Server:connect(TCP);
+    Client2->Server:connect(TCP);
 
-    Server->>Client1:match[1](TCP)
-    Server->>Client2:match[2](TCP)
+    Server->>Client1:match[1](TCP);
+    Server->>Client2:match[2](TCP);
 
-    loop until the winner is decided.
-        Server-->>Viewer:board_view(MC)
-        Client1-->>Server:operation[1](UDP)
-        Server->>Client1:state[1](TCP)
-        Server->>Client2:state[2](TCP)
-    end
-    Server->>Viewer:result_View(MC)
+    loop until the winner is decided.;
+        Server-->>Viewer:board_view(MC);
+        Client1-->>Server:operation[1](UDP);
+        Server->>Client1:state[1](TCP);
+        Server->>Client2:state[2](TCP);
+    end;
+    Server->>Viewer:result_View(MC);
 
 ```
 
@@ -223,7 +209,7 @@ sequenceDiagram
 M <port> <pieces> <is_hunter>
 ```
 
-- port は UDP サーバーのポート番号
+- port は操作を受け取る UDP サーバーのポート番号
 - pieces はプレイヤーに割り当てられた駒の番号
   - これと操作内容をメッセージで送ることで駒を操作する
 - is_hunter は鬼かどうかを表す(0 or 1)
@@ -248,7 +234,7 @@ S <state>
 O <target> <command>
 ```
 
-- target は鬼か、逃走者か
+- target は match 時に自分に割り当てられた ID
 - command は 2,4,6,8 の数字のどれか
 
 ### ゲームのビューを送信する(Server->Viewer)-MultiCast
@@ -262,9 +248,16 @@ TIME <time(sec)>
 
 **result_view**
 
+鬼が勝利した場合
+
 ```
-WINER <userIP:userPort>
-LOSER <userIP:userPort>
+Hunter Victory!
 ```
 
-これらは送信されてきた文字列をただ表示するだけ。
+逃走者が勝利した場合
+
+```
+Fugtive Victory!
+```
+
+disp は送信されてきた文字列をただ表示するだけ。

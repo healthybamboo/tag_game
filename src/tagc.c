@@ -81,8 +81,8 @@ int main(int argc, char *argv[]) {
   printf("Matched!\n");
   printf("You are %s.\n", is_hunter ? "hunter : *" : "fugtive : o");
 
-  // UDP通信のアドレス構造体を設定(TODO.set_target_addr()を使うでないと、自ホストのサーバーとしか通信できない)
-  set_server_addr(udp_server_addr, udp_port);
+  // UDP通信のアドレス構造体を設定(TCPサーバーと同じIPアドレスを設定)
+  set_target_addr(udp_server_addr, ip, udp_port);
 
   // 並列処理を開始
   pid = fork();
